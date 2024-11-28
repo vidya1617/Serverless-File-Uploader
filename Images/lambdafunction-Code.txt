@@ -1,0 +1,56 @@
+import json
+import boto3
+from datetime import datetime
+import uuid
+
+# Initialize AWS clients
+dynamodb = boto3.client('dynamodb')
+sns = boto3.client('sns')
+
+# DynamoDB table and SNS topic ARN
+DYNAMODB_TABLE = 'FileUploadLogs'
+SNS_TOPIC_ARN = 'arn:aws:sns:ap-southeast-1:941377137570:S3FileUploadNotifications'
+
+def lambda_handler(event, context):
+    try:
+        # Extract S3 bucket and object details
+        bucket_name = event['Records'][0]['s3']['bucket']['name']
+        object_key = event['Records'][0]['s3']['object']['key']
+        file_size = event['Records'][0]['s3']['object']['size']
+
+        # Current timestamp and unique PID generation using UUID
+        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        pid = f"PID-{uuid.uuid4()}"  # Unique PID for each upload
+
+        # Log the event for debugging
+        print(f"Bucket Name: {bucket_name}, Object Key: {object_key}, File Size: {file_size}, PID: {pid}")
+
+        # Log to DynamoDB
+        dynamodb.put_item(
+            TableName=DYNAMODB_TABLE,
+            Item={
+                'FileID': {'S': pid},  # Use the unique PID as the partition key
+                'FileName': {'S': object_key},
+                'BucketName': {'S': bucket_name},
+                'FileSize': {'S': str(file_size)},
+                'UploadTime': {'S': timestamp}
+            }
+        )
+
+        # Send notification via SNS
+        sns.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Message=f'File {object_key} uploaded to bucket {bucket_name} at {timestamp}.',
+            Subject='S3 File Upload Notification'
+        )
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps('File upload processed successfully.')
+        }
+
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps(f'Error processing file upload: {str(e)}')
+        }

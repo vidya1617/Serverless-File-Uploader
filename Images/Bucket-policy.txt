@@ -1,0 +1,21 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::941377137570:role/service-role/FileUploadHandler-role-su01cqbh"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::serverless-file-uploader-vc/*"
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::941377137570:role/service-role/FileUploadHandler-role-su01cqbh"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::serverless-file-uploader-vc/*"
+        }
+    ]
+}
